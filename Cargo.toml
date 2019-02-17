@@ -6,3 +6,10 @@ edition = "2018"
 
 [dependencies]
 num-complex = "0.2"
+
+[dev-dependencies]
+criterion = "0.2"
+
+[[bench]]
+name = "vec_conversion"
+harness = false
