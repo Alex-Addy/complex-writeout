@@ -39,14 +39,16 @@ fn convert_via_reconstruction(floats: &[f32]) -> Vec<Complex<f32>> {
 
     unsafe {
         // this will cause shrink_to_fit which will have nothing to do
-        let mut s = v.into_boxed_slice();
-        let ptr = s.as_mut_ptr();
-        // Without this *ptr will be freed at the end of this block, resulting in a Vec pointing to
-        // freed memory
-        std::mem::forget(s);
+        let s = v.into_boxed_slice();
+        // this consumes s without allowing it to drop its memory, something else will have to
+        // manage that memory
+        let ptr = Box::into_raw(s);
 
+        // A simple cast changing what the ptr is pointing to
         let ptr = ptr as *mut Complex<f32>;
 
+        // This constructs a Vector in place, no heap allocations occur while constructing this
+        // vector
         Vec::from_raw_parts(ptr, len/2, len/2)
     }
 }
