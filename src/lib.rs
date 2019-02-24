@@ -71,6 +71,47 @@ pub fn f32_to_complex_vec(mut floats: Vec<f32>) -> Vec<Complex<f32>> {
     }
 }
 
+/// WARNING!! Do not use this function. It is not guaranteed that the following is correct.
+///
+/// This function will convert a vector's values from T to U via pointer manipulation and casting.
+///
+/// This function is only safe to call if the following conditions are true:
+///   1. T and U have the same alignment
+///   2. v has the exact number of bytes required for U to fill
+///     - len and capacity must be correct
+///   3. All valid bit-patterns of T must be valid bit-patterns of U
+///
+/// If 1 or 2 are violated this function will panic at run time.
+/// This function cannot check for 3.
+pub fn vec_convert<T, U>(mut v: Vec<T>) -> Vec<U> {
+    // TODO determine if this can be relaxed if U has a smaller alignment than T
+    assert_eq!(std::mem::align_of::<T>(), std::mem::align_of::<U>());
+
+    let t_size = std::mem::size_of::<T>();
+    let u_size = std::mem::size_of::<U>();
+
+    // TODO this requires t_size < u_size, is this necessary?
+    // TODO is it necessary that individual elements overlap exactly?
+    // TODO should I check t_size <= u_size?
+    assert_eq!(u_size % t_size, 0);
+
+    // There cannot be any leftover bytes
+    assert_eq!(v.len() * t_size % u_size, 0);
+    assert_eq!(v.capacity() * t_size % u_size, 0);
+
+    let len = v.len() * t_size / u_size;
+    let cap = v.capacity() * t_size / u_size;
+    let ptr = v.as_mut_ptr();
+    
+    unsafe {
+        let ptr = ptr as *mut U;
+
+        std::mem::forget(v);
+
+        Vec::from_raw_parts(ptr, len, cap)
+    }
+}
+
 #[cfg(test)]
 mod test {
     use num_complex::Complex;
